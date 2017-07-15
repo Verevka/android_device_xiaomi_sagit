@@ -162,16 +162,19 @@ PRODUCT_PACKAGES += \
     libloc_pla \
     libloc_stub \
     libcurl \
-    libgnsspps \
-    libvehiclenetwork-native
+    libgnsspps
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/gps/etc/flp.conf:system/vendor/etc/flp.conf \
-    $(LOCAL_PATH)/gps/etc/gps.conf:system/vendor/etc/gps.conf \
     $(LOCAL_PATH)/gps/etc/izat.conf:system/vendor/etc/izat.conf \
     $(LOCAL_PATH)/gps/etc/lowi.conf:system/vendor/etc/lowi.conf \
     $(LOCAL_PATH)/gps/etc/sap.conf:system/vendor/etc/sap.conf \
+    $(LOCAL_PATH)/gps/etc/apdr.conf:system/vendor/etc/apdr.conf \
     $(LOCAL_PATH)/gps/etc/xtwifi.conf:system/vendor/etc/xtwifi.conf
+
+# Vehicle network (for slim_daemon)
+PRODUCT_PACKAGES += \
+    libvehiclenetwork-native
 
 # Input
 PRODUCT_COPY_FILES += \
@@ -182,10 +185,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/keylayout/synaptics_dsx.kl:system/usr/keylayout/synaptics_dsx.kl \
     $(LOCAL_PATH)/keylayout/uinput-fpc.kl:system/usr/keylayout/uinput-fpc.kl \
     $(LOCAL_PATH)/keylayout/uinput-goodix.kl:system/usr/keylayout/uinput-goodix.kl
-
-# Vehicle network (for slim_daemon)
-PRODUCT_PACKAGES += \
-    libvehiclenetwork-native
 
 # IPv6
 PRODUCT_PACKAGES += \
