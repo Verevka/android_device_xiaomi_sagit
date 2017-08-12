@@ -777,89 +777,87 @@ void LocEngReportPosition::proc() const {
     LocEngAdapter* adapter = (LocEngAdapter*)mAdapter;
     loc_eng_data_s_type* locEng = (loc_eng_data_s_type*)adapter->getOwner();
 
-    if (locEng->mute_session_state != LOC_MUTE_SESS_IN_SESSION) {
-        bool reported = false;
-        if (locEng->location_cb != NULL) {
-            adapter->clearGnssSvUsedListData();
-            if (LOC_SESS_FAILURE == mStatus) {
-                // in case we want to handle the failure case
-                locEng->location_cb(NULL, NULL);
-                reported = true;
-            }
-            // what's in the else if is... (line by line)
-            // 1. this is a final fix; and
-            //   1.1 it is a Satellite fix; or
-            //   1.2 it is a sensor fix
-            // 2. (must be intermediate fix... implicit)
-            //   2.1 we accepte intermediate; and
-            //   2.2 it is NOT the case that
-            //   2.2.1 there is inaccuracy; and
-            //   2.2.2 we care about inaccuracy; and
-            //   2.2.3 the inaccuracy exceeds our tolerance
-            else if ((LOC_SESS_SUCCESS == mStatus &&
-                      ((LOC_POS_TECH_MASK_SATELLITE |
-                        LOC_POS_TECH_MASK_SENSORS   |
-                        LOC_POS_TECH_MASK_HYBRID) &
-                       mTechMask)) ||
-                     (LOC_SESS_INTERMEDIATE == locEng->intermediateFix &&
-                      !((mLocation.gpsLocation.flags &
-                         LOC_GPS_LOCATION_HAS_ACCURACY) &&
-                        (gps_conf.ACCURACY_THRES != 0) &&
-                        (mLocation.gpsLocation.accuracy >
-                         gps_conf.ACCURACY_THRES)))) {
-                if (mLocationExtended.flags & GPS_LOCATION_EXTENDED_HAS_GNSS_SV_USED_DATA)
-                {
-                    adapter->setGnssSvUsedListData(mLocationExtended.gnss_sv_used_ids);
-                }
-                locEng->location_cb((UlpLocation*)&(mLocation),
-                                    (void*)mLocationExt);
-                reported = true;
-            }
+    bool reported = false;
+    if (locEng->location_cb != NULL) {
+        adapter->clearGnssSvUsedListData();
+        if (LOC_SESS_FAILURE == mStatus) {
+            // in case we want to handle the failure case
+            locEng->location_cb(NULL, NULL);
+            reported = true;
         }
-
-        // if we have reported this fix
-        if (reported &&
-            // and if this is a singleshot
-            LOC_GPS_POSITION_RECURRENCE_SINGLE ==
-            locEng->adapter->getPositionMode().recurrence) {
-            if (LOC_SESS_INTERMEDIATE == mStatus) {
-                // modem could be still working for a final fix,
-                // although we no longer need it.  So stopFix().
-                locEng->adapter->stopFix();
+        // what's in the else if is... (line by line)
+        // 1. this is a final fix; and
+        //   1.1 it is a Satellite fix; or
+        //   1.2 it is a sensor fix
+        // 2. (must be intermediate fix... implicit)
+        //   2.1 we accepte intermediate; and
+        //   2.2 it is NOT the case that
+        //   2.2.1 there is inaccuracy; and
+        //   2.2.2 we care about inaccuracy; and
+        //   2.2.3 the inaccuracy exceeds our tolerance
+        else if ((LOC_SESS_SUCCESS == mStatus &&
+                  ((LOC_POS_TECH_MASK_SATELLITE |
+                    LOC_POS_TECH_MASK_SENSORS   |
+                    LOC_POS_TECH_MASK_HYBRID) &
+                   mTechMask)) ||
+                 (LOC_SESS_INTERMEDIATE == locEng->intermediateFix &&
+                  !((mLocation.gpsLocation.flags &
+                     LOC_GPS_LOCATION_HAS_ACCURACY) &&
+                    (gps_conf.ACCURACY_THRES != 0) &&
+                    (mLocation.gpsLocation.accuracy >
+                     gps_conf.ACCURACY_THRES)))) {
+            if (mLocationExtended.flags & GPS_LOCATION_EXTENDED_HAS_GNSS_SV_USED_DATA)
+            {
+                adapter->setGnssSvUsedListData(mLocationExtended.gnss_sv_used_ids);
             }
-            // turn off the session flag.
-            locEng->adapter->setInSession(false);
+            locEng->location_cb((UlpLocation*)&(mLocation),
+                                (void*)mLocationExt);
+            reported = true;
         }
+    }
 
-        LOC_LOGV("LocEngReportPosition::proc() - generateNmea: %d, position source: %d, "
-                 "engine_status: %d, isInSession: %d",
-                        locEng->generateNmea, mLocation.position_source,
-                        locEng->engine_status, locEng->adapter->isInSession());
-
-        if (locEng->generateNmea &&
-            locEng->adapter->isInSession())
-        {
-            std::vector<std::string> nmeaArraystr;
-            unsigned char generate_nmea = reported &&
-                                          (mStatus != LOC_SESS_FAILURE);
-            loc_nmea_generate_pos(mLocation, mLocationExtended, generate_nmea, nmeaArraystr);
-            struct timeval tv;
-            gettimeofday(&tv,  NULL);
-            int64_t now = tv.tv_sec * 1000LL + tv.tv_usec / 1000;
-            for(int i = 0; i < nmeaArraystr.size(); i++) {
-                if (locEng->nmea_cb != NULL)
-                   locEng->nmea_cb(now, nmeaArraystr[i].c_str(), nmeaArraystr[i].length());
-            }
+    // if we have reported this fix
+    if (reported &&
+        // and if this is a singleshot
+        LOC_GPS_POSITION_RECURRENCE_SINGLE ==
+        locEng->adapter->getPositionMode().recurrence) {
+        if (LOC_SESS_INTERMEDIATE == mStatus) {
+            // modem could be still working for a final fix,
+            // although we no longer need it.  So stopFix().
+            locEng->adapter->stopFix();
         }
+        // turn off the session flag.
+        locEng->adapter->setInSession(false);
+    }
 
-        // Free the allocated memory for rawData
-        UlpLocation* gp = (UlpLocation*)&(mLocation);
-        if (gp != NULL && gp->rawData != NULL)
-        {
-            delete (char*)gp->rawData;
-            gp->rawData = NULL;
-            gp->rawDataSize = 0;
+    LOC_LOGV("LocEngReportPosition::proc() - generateNmea: %d, position source: %d, "
+             "engine_status: %d, isInSession: %d",
+                    locEng->generateNmea, mLocation.position_source,
+                    locEng->engine_status, locEng->adapter->isInSession());
+
+    if (locEng->generateNmea &&
+        locEng->adapter->isInSession())
+    {
+        std::vector<std::string> nmeaArraystr;
+        unsigned char generate_nmea = reported &&
+                                      (mStatus != LOC_SESS_FAILURE);
+        loc_nmea_generate_pos(mLocation, mLocationExtended, generate_nmea, nmeaArraystr);
+        struct timeval tv;
+        gettimeofday(&tv,  NULL);
+        int64_t now = tv.tv_sec * 1000LL + tv.tv_usec / 1000;
+        for(int i = 0; i < nmeaArraystr.size(); i++) {
+            if (locEng->nmea_cb != NULL)
+               locEng->nmea_cb(now, nmeaArraystr[i].c_str(), nmeaArraystr[i].length());
         }
+    }
+
+    // Free the allocated memory for rawData
+    UlpLocation* gp = (UlpLocation*)&(mLocation);
+    if (gp != NULL && gp->rawData != NULL)
+    {
+        delete (char*)gp->rawData;
+        gp->rawData = NULL;
+        gp->rawDataSize = 0;
     }
 }
 void LocEngReportPosition::locallog() const {
@@ -890,69 +888,69 @@ void LocEngReportSv::proc() const {
     LocEngAdapter* adapter = (LocEngAdapter*)mAdapter;
     loc_eng_data_s_type* locEng = (loc_eng_data_s_type*)adapter->getOwner();
 
-    if (locEng->mute_session_state != LOC_MUTE_SESS_IN_SESSION)
+    LocGnssSvStatus gnssSvStatus;
+    memcpy(&gnssSvStatus,&mSvStatus,sizeof(LocGnssSvStatus));
+    if (adapter->isGnssSvIdUsedInPosAvail())
     {
-        LocGnssSvStatus gnssSvStatus;
-        memcpy(&gnssSvStatus,&mSvStatus,sizeof(LocGnssSvStatus));
-        if (adapter->isGnssSvIdUsedInPosAvail())
+        GnssSvUsedInPosition gnssSvIdUsedInPosition =
+                            adapter->getGnssSvUsedListData();
+        int numSv = gnssSvStatus.num_svs;
+        int16_t gnssSvId = 0;
+        uint64_t svUsedIdMask = 0;
+        for (int i=0; i < numSv; i++)
         {
-            GnssSvUsedInPosition gnssSvIdUsedInPosition =
-                                adapter->getGnssSvUsedListData();
-            int numSv = gnssSvStatus.num_svs;
-            int16_t gnssSvId = 0;
-            uint64_t svUsedIdMask = 0;
-            for (int i=0; i < numSv; i++)
+            gnssSvId = gnssSvStatus.gnss_sv_list[i].svid;
+            switch(gnssSvStatus.gnss_sv_list[i].constellation) {
+            case LOC_GNSS_CONSTELLATION_GPS:
+                svUsedIdMask = gnssSvIdUsedInPosition.gps_sv_used_ids_mask;
+                break;
+            case LOC_GNSS_CONSTELLATION_GLONASS:
+                svUsedIdMask = gnssSvIdUsedInPosition.glo_sv_used_ids_mask;
+                break;
+            case LOC_GNSS_CONSTELLATION_BEIDOU:
+                svUsedIdMask = gnssSvIdUsedInPosition.bds_sv_used_ids_mask;
+                break;
+            case LOC_GNSS_CONSTELLATION_GALILEO:
+                svUsedIdMask = gnssSvIdUsedInPosition.gal_sv_used_ids_mask;
+                break;
+            case LOC_GNSS_CONSTELLATION_QZSS:
+                svUsedIdMask = gnssSvIdUsedInPosition.qzss_sv_used_ids_mask;
+                break;
+            default:
+                svUsedIdMask = 0;
+                break;
+            }
+
+            // If SV ID was used in previous position fix, then set USED_IN_FIX
+            // flag, else clear the USED_IN_FIX flag.
+            if (svUsedIdMask & (1 << (gnssSvId - 1)))
             {
-                gnssSvId = gnssSvStatus.gnss_sv_list[i].svid;
-                switch(gnssSvStatus.gnss_sv_list[i].constellation) {
-                case LOC_GNSS_CONSTELLATION_GPS:
-                    svUsedIdMask = gnssSvIdUsedInPosition.gps_sv_used_ids_mask;
-                    break;
-                case LOC_GNSS_CONSTELLATION_GLONASS:
-                    svUsedIdMask = gnssSvIdUsedInPosition.glo_sv_used_ids_mask;
-                    break;
-                case LOC_GNSS_CONSTELLATION_BEIDOU:
-                    svUsedIdMask = gnssSvIdUsedInPosition.bds_sv_used_ids_mask;
-                    break;
-                case LOC_GNSS_CONSTELLATION_GALILEO:
-                    svUsedIdMask = gnssSvIdUsedInPosition.gal_sv_used_ids_mask;
-                    break;
-                default:
-                    svUsedIdMask = 0;
-                    break;
-                }
-
-                // If SV ID was used in previous position fix, then set USED_IN_FIX
-                // flag, else clear the USED_IN_FIX flag.
-                if (svUsedIdMask & (1 << (gnssSvId - 1)))
-                {
-                    gnssSvStatus.gnss_sv_list[i].flags |= LOC_GNSS_SV_FLAGS_USED_IN_FIX;
-                }
-                else
-                {
-                    gnssSvStatus.gnss_sv_list[i].flags &= ~LOC_GNSS_SV_FLAGS_USED_IN_FIX;
-                }
+                gnssSvStatus.gnss_sv_list[i].flags |= LOC_GNSS_SV_FLAGS_USED_IN_FIX;
+            }
+            else
+            {
+                gnssSvStatus.gnss_sv_list[i].flags &= ~LOC_GNSS_SV_FLAGS_USED_IN_FIX;
             }
         }
+    }
 
-        if (locEng->gnss_sv_status_cb != NULL) {
-            locEng->gnss_sv_status_cb((LocGnssSvStatus*)&(gnssSvStatus));
+    if (locEng->gnss_sv_status_cb != NULL) {
+        locEng->gnss_sv_status_cb((LocGnssSvStatus*)&(gnssSvStatus));
+    }
+
+    if (locEng->generateNmea)
+    {
+        std::vector<std::string> nmeaArraystr;
+        loc_nmea_generate_sv(gnssSvStatus, mLocationExtended, nmeaArraystr);
+        struct timeval tv;
+        gettimeofday(&tv,  NULL);
+        int64_t now = tv.tv_sec * 1000LL + tv.tv_usec / 1000;
+        for(int i = 0; i < nmeaArraystr.size(); i++) {
+            if (locEng->nmea_cb != NULL)
+               locEng->nmea_cb(now, nmeaArraystr[i].c_str(), nmeaArraystr[i].length());
+
         }
 
-        if (locEng->generateNmea)
-        {
-            std::vector<std::string> nmeaArraystr;
-            loc_nmea_generate_sv(gnssSvStatus, mLocationExtended, nmeaArraystr);
-            struct timeval tv;
-            gettimeofday(&tv,  NULL);
-            int64_t now = tv.tv_sec * 1000LL + tv.tv_usec / 1000;
-            for(int i = 0; i < nmeaArraystr.size(); i++) {
-                if (locEng->nmea_cb != NULL)
-                   locEng->nmea_cb(now, nmeaArraystr[i].c_str(), nmeaArraystr[i].length());
-
-            }
-
-        }
     }
 }
 void LocEngReportSv::locallog() const {
@@ -990,9 +988,9 @@ inline void LocEngReportStatus::log() const {
 //        case LOC_ENG_MSG_REPORT_NMEA:
 LocEngReportNmea::LocEngReportNmea(void* locEng,
                                    const char* data, int len) :
-    LocMsg(), mLocEng(locEng), mNmea(new char[len]), mLen(len)
+    LocMsg(), mLocEng(locEng), mNmea(new char[len+1]), mLen(len)
 {
-    memcpy((void*)mNmea, (void*)data, len);
+    strlcpy(mNmea, data, len+1);
     locallog();
 }
 void LocEngReportNmea::proc() const {
@@ -1738,12 +1736,9 @@ LocEngReportGnssMeasurement::LocEngReportGnssMeasurement(void* locEng,
 }
 void LocEngReportGnssMeasurement::proc() const {
     loc_eng_data_s_type* locEng = (loc_eng_data_s_type*) mLocEng;
-    if (locEng->mute_session_state != LOC_MUTE_SESS_IN_SESSION)
-    {
-        if (locEng->gnss_measurement_cb != NULL) {
-            LOC_LOGV("Calling gnss_measurement_cb");
-            locEng->gnss_measurement_cb((LocGnssData*)&(mGnssData));
-        }
+    if (locEng->gnss_measurement_cb != NULL) {
+        LOC_LOGV("Calling gnss_measurement_cb");
+        locEng->gnss_measurement_cb((LocGnssData*)&(mGnssData));
     }
 }
 void LocEngReportGnssMeasurement::locallog() const {
@@ -1854,7 +1849,6 @@ int loc_eng_init(loc_eng_data_s_type &loc_eng_data, LocCallbacks* callbacks,
     // initial states taken care of by the memset above
     // loc_eng_data.engine_status -- LOC_GPS_STATUS_NONE;
     // loc_eng_data.fix_session_status -- LOC_GPS_STATUS_NONE;
-    // loc_eng_data.mute_session_state -- LOC_MUTE_SESS_NONE;
 
     if ((event & LOC_API_ADAPTER_BIT_NMEA_1HZ_REPORT) && (gps_conf.NMEA_PROVIDER == NMEA_PROVIDER_AP))
     {
@@ -2091,29 +2085,6 @@ static int loc_eng_stop_handler(loc_eng_data_s_type &loc_eng_data)
 
     EXIT_LOG(%d, ret_val);
     return ret_val;
-}
-
-/*===========================================================================
-FUNCTION    loc_eng_mute_one_session
-
-DESCRIPTION
-   Mutes one session
-
-DEPENDENCIES
-   None
-
-RETURN VALUE
-   0: Success
-
-SIDE EFFECTS
-   N/A
-
-===========================================================================*/
-void loc_eng_mute_one_session(loc_eng_data_s_type &loc_eng_data)
-{
-    ENTRY_LOG();
-    loc_eng_data.mute_session_state = LOC_MUTE_SESS_WAIT;
-    EXIT_LOG(%s, VOID_RET);
 }
 
 /*===========================================================================
@@ -3008,23 +2979,6 @@ SIDE EFFECTS
 static void loc_eng_report_status (loc_eng_data_s_type &loc_eng_data, LocGpsStatusValue status)
 {
     ENTRY_LOG();
-    // Switch from WAIT to MUTE, for "engine on" or "session begin" event
-    if (status == LOC_GPS_STATUS_SESSION_BEGIN || status == LOC_GPS_STATUS_ENGINE_ON)
-    {
-        if (loc_eng_data.mute_session_state == LOC_MUTE_SESS_WAIT)
-        {
-            LOC_LOGD("loc_eng_report_status: mute_session_state changed from WAIT to IN SESSION");
-            loc_eng_data.mute_session_state = LOC_MUTE_SESS_IN_SESSION;
-        }
-    }
-
-    // Switch off MUTE session
-    if (loc_eng_data.mute_session_state == LOC_MUTE_SESS_IN_SESSION &&
-        (status == LOC_GPS_STATUS_SESSION_END || status == LOC_GPS_STATUS_ENGINE_OFF))
-    {
-        LOC_LOGD("loc_eng_report_status: mute_session_state changed from IN SESSION to NONE");
-        loc_eng_data.mute_session_state = LOC_MUTE_SESS_NONE;
-    }
 
     // Session End is not reported during Android navigating state
     boolean navigating = loc_eng_data.adapter->isInSession();
@@ -3032,14 +2986,8 @@ static void loc_eng_report_status (loc_eng_data_s_type &loc_eng_data, LocGpsStat
         !(status == LOC_GPS_STATUS_SESSION_END && navigating) &&
         !(status == LOC_GPS_STATUS_SESSION_BEGIN && !navigating))
     {
-        if (loc_eng_data.mute_session_state != LOC_MUTE_SESS_IN_SESSION)
-        {
-            // Inform GpsLocationProvider about mNavigating status
-            loc_inform_gps_status(loc_eng_data, status);
-        }
-        else {
-            LOC_LOGD("loc_eng_report_status: muting the status report.");
-        }
+        // Inform GpsLocationProvider about mNavigating status
+        loc_inform_gps_status(loc_eng_data, status);
     }
 
     // Only keeps ENGINE ON/OFF in engine_status

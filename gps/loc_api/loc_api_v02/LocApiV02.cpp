@@ -575,6 +575,13 @@ enum loc_api_adapter_err LocApiV02 :: startFix(const LocPosMode& fixCriteria)
           {
               //fix needs low accuracy
               start_msg.horizontalAccuracyLevel =  eQMI_LOC_ACCURACY_LOW_V02;
+              // limit the scanning max time to 1 min and TBF to 10 min
+              // this is to control the power cost for gps for LOW accuracy
+              start_msg.positionReportTimeout_valid = 1;
+              start_msg.positionReportTimeout = 60000;
+              if (start_msg.minInterval < 600000) {
+                  start_msg.minInterval = 600000;
+              }
           }
       }
 
@@ -2344,6 +2351,11 @@ void LocApiV02 :: reportPosition (
                         locationExtended.gnss_sv_used_ids.gal_sv_used_ids_mask |=
                                                     (1 << (gnssSvIdUsed - GAL_SV_PRN_MIN));
                     }
+                    else if ((gnssSvIdUsed >= QZSS_SV_PRN_MIN) && (gnssSvIdUsed <= QZSS_SV_PRN_MAX))
+                    {
+                        locationExtended.gnss_sv_used_ids.qzss_sv_used_ids_mask |=
+                                                    (1 << (gnssSvIdUsed - QZSS_SV_PRN_MIN));
+                    }
                 }
             }
 
@@ -2463,7 +2475,7 @@ void  LocApiV02 :: reportSv (
             break;
 
           case eQMI_LOC_SV_SYSTEM_QZSS_V02:
-            SvStatus.gnss_sv_list[SvStatus.num_svs].svid = sv_info_ptr->gnssSvId;
+            SvStatus.gnss_sv_list[SvStatus.num_svs].svid = sv_info_ptr->gnssSvId - 192;
             SvStatus.gnss_sv_list[SvStatus.num_svs].constellation = LOC_GNSS_CONSTELLATION_QZSS;
             break;
 
