@@ -138,6 +138,9 @@ USE_DEVICE_SPECIFIC_CAMERA := true
 # Charger
 BOARD_CHARGER_ENABLE_SUSPEND := true
 
+# Fast charging support
+HEALTHD_USE_FASTCHG_STATUS := true
+
 # CM Hardware
 BOARD_HARDWARE_CLASS += \
     hardware/cyanogen/cmhw \
