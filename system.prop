@@ -170,6 +170,13 @@ persist.radio.enhance_ecall=true
 persist.radio.hw_mbn_update=0
 persist.radio.sw_mbn_update=0
 persist.radio.start_ota_daemon=0
+persist.radio.force_on_dc=true
+persist.data.iwlan.enable=false
+persist.radio.DROPSETENABLE=1
+persist.radio.calls.on.ims=true
+persist.radio.jbims=1
+persist.radio.override_psvoice=true
+persist.sys.e911=cs
 
 # RCS
 persist.rcs.supported=0
