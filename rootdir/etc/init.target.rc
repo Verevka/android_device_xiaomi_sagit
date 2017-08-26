@@ -592,12 +592,6 @@ service qdmastatsd /system/bin/qdmastatsd
     user system
     group system
 
-service readmac /system/bin/readmac
-    class main
-    user root
-    group root
-    oneshot
-
 on property:slpi.restart=1
     write /sys/kernel/debug/msm_subsys/slpi restart
 
