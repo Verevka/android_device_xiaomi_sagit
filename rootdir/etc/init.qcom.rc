@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2012, 2014-2016, The Linux Foundation. All rights reserved.
+# Copyright (c) 2009-2012, 2014-2017, The Linux Foundation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -588,7 +588,7 @@ on property:persist.download_mode=1
 service start_hci_filter /system/bin/wcnss_filter
     class late_start
     user bluetooth
-    group bluetooth qcom_diag system wakelock
+    group bluetooth qcom_diag system wakelock sdcard_rw sdcard_r media_rw
     disabled
 
 #net_admin capability needed to write rfkill sysfs entry
@@ -597,6 +597,7 @@ service fmhal_service /system/bin/fmhal_service
     user bluetooth
     group bluetooth net_bt_admin
     disabled
+    oneshot
 
 service config_bt_addr /system/bin/btnvtool -O
     class core

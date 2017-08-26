@@ -69,7 +69,7 @@ on fs
 
     mkdir /persist/data 0700 system system
     mkdir /persist/wlan_bt 0700 system system
-    mkdir /persist/audio 0700 system system
+    mkdir /persist/audio 0755 system system
     mkdir /persist/bms 0700 root system
     restorecon_recursive /persist
 
