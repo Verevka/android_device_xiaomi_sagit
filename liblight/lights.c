@@ -70,7 +70,7 @@ static int hw_buttons;
 
 #define RAMP_SIZE 8
 static int BRIGHTNESS_RAMP[RAMP_SIZE] = { 0, 12, 25, 37, 50, 72, 85, 100 };
-#define RAMP_STEP_DURATION 50
+#define RAMP_STEP_DURATION 500
 
 #define DEFAULT_MAX_BRIGHTNESS 255
 int max_brightness;
