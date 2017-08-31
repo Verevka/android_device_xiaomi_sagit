@@ -83,6 +83,8 @@ on fs
     mount vfat /dev/block/bootdevice/by-name/bluetooth /bt_firmware ro shortname=lower,uid=1002,gid=3002,dmask=227,fmask=337,context=u:object_r:bt_firmware_file:s0
 
     chmod 644 /persist/audio/us_manual_cal
+    
+    install_keyring
 
 on post-fs
     start qseecomd
