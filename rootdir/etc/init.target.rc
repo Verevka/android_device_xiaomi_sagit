@@ -168,6 +168,8 @@ on boot
    chmod 0700 /sys/bus/platform/devices/soc:fingerprint_fpc/device_prepare
    chmod 0700 /sys/bus/platform/devices/soc:fingerprint_fpc/vendor
    chmod 0600 /data/fpc/calibration_image.pndat
+   
+   setprop persist.camera.HAL3.enabled 1
 
 # access permission for Speaker SmartPA
     chmod 0666 /dev/i2c-10
