@@ -537,13 +537,6 @@ vendor/lib/libchromatix_s5k3m3sm_video.so
 vendor/lib/libchromatix_s5k3m3sm_zsl_preview_3a.so
 vendor/lib/libchromatix_s5k3m3sm_zsl_video_3a.so
 
-# Camera configs
-etc/camera/camera_config.xml
-etc/camera/imx386_semco_chromatix.xml
-etc/camera/s5k3m3_semco_chromatix.xml
-etc/camera/imx268_chromatix.xml
-etc/camera/sagit_imx268_liteon_chromatix.xml
-
 # Camera eeproms
 vendor/lib/libmmcamera_centaur_imx268_ofilm_eeprom.so
 vendor/lib/libmmcamera_centaur_imx268_ofilm.so
