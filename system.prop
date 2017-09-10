@@ -150,7 +150,7 @@ persist.rild.nitz_short_ons_3=
 
 ril.subscription.types=NV,RUIM
 DEVICE_PROVISIONED=1
-ro.telephony.default_network=10,10
+ro.telephony.default_network=22,22
 telephony.lteOnCdmaDevice=1
 keyguard.no_require_sim=true
 ro.com.android.dataroaming=true
