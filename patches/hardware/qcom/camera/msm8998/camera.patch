@@ -1,0 +1,684 @@
+From e5ff06f22a64ba35ce2517bf8061880a76bb92a0 Mon Sep 17 00:00:00 2001
+From: Brandon Schade <bschade@codeaurora.org>
+Date: Tue, 24 Jan 2017 12:38:47 -0800
+Subject: [PATCH] QCamera2: FOV-control: Add mechanism to use external zoom
+ translation lib
+
+Provide a class QCameraExtZoomTranslator to be used to open an external
+library to get the wide and tele zoom values for the given user zoom. The
+class offers init, deinit and getZoomValues APIs to achieve this.
+FOV-control has hooks to use this zoom translator and override the
+default zoom translation logic. Setting- FOVC_USE_EXTERNAL_ZOOM_TRANSLATOR
+is used to indicate if the external zoom translation should be used.
+
+CRs-Fixed: 1059096
+
+Change-Id: I5c8b097bf7f2ec843157e51d320b9905aa9128d0
+---
+ QCamera2/Android.mk                        |   3 +-
+ QCamera2/HAL/QCameraParameters.cpp         |  41 +++++-
+ QCamera2/HAL/QCameraParameters.h           |   3 +-
+ QCamera2/util/QCameraDualCamSettings.h     |   5 +
+ QCamera2/util/QCameraExtZoomTranslator.cpp | 204 +++++++++++++++++++++++++++++
+ QCamera2/util/QCameraExtZoomTranslator.h   |  80 +++++++++++
+ QCamera2/util/QCameraFOVControl.cpp        | 113 ++++++++++++++--
+ QCamera2/util/QCameraFOVControl.h          |   6 +-
+ 8 files changed, 436 insertions(+), 19 deletions(-)
+ create mode 100644 QCamera2/util/QCameraExtZoomTranslator.cpp
+ create mode 100644 QCamera2/util/QCameraExtZoomTranslator.h
+
+diff --git a/QCamera2/Android.mk b/QCamera2/Android.mk
+index e01c42c6..5ccd1340 100755
+--- a/QCamera2/Android.mk
++++ b/QCamera2/Android.mk
+@@ -61,7 +61,8 @@ LOCAL_SRC_FILES += \
+         HAL/QCameraThermalAdapter.cpp \
+         util/QCameraFOVControl.cpp \
+         util/QCameraHALPP.cpp \
+-        util/QCameraDualFOVPP.cpp
++        util/QCameraDualFOVPP.cpp \
++        util/QCameraExtZoomTranslator.cpp
+ endif
+ 
+ # System header file path prefix
+diff --git a/QCamera2/HAL/QCameraParameters.cpp b/QCamera2/HAL/QCameraParameters.cpp
+index ca2512d9..7ef197d5 100644
+--- a/QCamera2/HAL/QCameraParameters.cpp
++++ b/QCamera2/HAL/QCameraParameters.cpp
+@@ -11794,14 +11794,16 @@ int32_t QCameraParameters::setFrameSkip(enum msm_vfe_frame_skip_pattern pattern)
+  * DESCRIPTION: Query sensor output size based on maximum stream dimension
+  *
+  * PARAMETERS :
+- *   @max_dim : maximum stream dimension
++ *   @max_dim    : maximum stream dimension
+  *   @sensor_dim : sensor dimension
++ *   @cam_type   : camera type in case of dual camera
+  *
+  * RETURN     : int32_t type of status
+  *              NO_ERROR  -- success
+  *              none-zero failure code
+  *==========================================================================*/
+-int32_t QCameraParameters::getSensorOutputSize(cam_dimension_t max_dim, cam_dimension_t &sensor_dim)
++int32_t QCameraParameters::getSensorOutputSize(cam_dimension_t max_dim,
++        cam_dimension_t &sensor_dim, uint32_t cam_type)
+ {
+     int32_t rc = NO_ERROR;
+     cam_dimension_t pic_dim;
+@@ -11860,7 +11862,11 @@ int32_t QCameraParameters::getSensorOutputSize(cam_dimension_t max_dim, cam_dime
+         return rc;
+     }
+ 
+-    READ_PARAM_ENTRY(m_pParamBuf, CAM_INTF_PARM_RAW_DIMENSION, sensor_dim);
++    if (cam_type == MM_CAMERA_TYPE_AUX) {
++        READ_PARAM_ENTRY(m_pParamBufAux, CAM_INTF_PARM_RAW_DIMENSION, sensor_dim);
++    } else {
++        READ_PARAM_ENTRY(m_pParamBuf, CAM_INTF_PARM_RAW_DIMENSION, sensor_dim);
++    }
+ 
+     LOGH("RAW Dimension = %d X %d",sensor_dim.width,sensor_dim.height);
+     if (sensor_dim.width == 0 || sensor_dim.height == 0) {
+@@ -13568,6 +13574,25 @@ uint8_t QCameraParameters::getMobicatMask()
+  *==========================================================================*/
+ bool QCameraParameters::sendStreamConfigInfo(cam_stream_size_info_t &stream_config_info) {
+     int32_t rc = NO_ERROR;
++    cam_dimension_t sensor_dim_main = {0,0};
++    cam_dimension_t sensor_dim_aux  = {0,0};
++
++    if (isDualCamera()) {
++        // Get the sensor output dimensions for main and aux cameras.
++        cam_dimension_t max_dim = {0,0};
++        for (uint32_t i = 0; i < stream_config_info.num_streams; i++) {
++            // Find the max dimension among all the streams
++            if (stream_config_info.stream_sizes[i].width > max_dim.width) {
++               max_dim.width = stream_config_info.stream_sizes[i].width;
++            }
++            if (stream_config_info.stream_sizes[i].height > max_dim.height) {
++               max_dim.height = stream_config_info.stream_sizes[i].height;
++            }
++        }
++        getSensorOutputSize(max_dim, sensor_dim_main, MM_CAMERA_TYPE_MAIN);
++        getSensorOutputSize(max_dim, sensor_dim_aux,  MM_CAMERA_TYPE_AUX);
++    }
++
+     if(initBatchUpdate() < 0 ) {
+         LOGE("Failed to initialize group update table");
+         return BAD_TYPE;
+@@ -13585,7 +13610,15 @@ bool QCameraParameters::sendStreamConfigInfo(cam_stream_size_info_t &stream_conf
+         return rc;
+     }
+ 
+-    if(isDualCamera()) {
++    if (isDualCamera()) {
++        if (ADD_SET_PARAM_ENTRY_TO_BATCH(m_pParamBuf,
++                CAM_INTF_PARM_RAW_DIMENSION, sensor_dim_main) ||
++                ADD_SET_PARAM_ENTRY_TO_BATCH(m_pParamBufAux,
++                    CAM_INTF_PARM_RAW_DIMENSION, sensor_dim_aux)) {
++            LOGE("Failed to update table for CAM_INTF_PARM_RAW_DIMENSION");
++            return BAD_VALUE;
++        }
++
+         // Update FOV-control config settings due to the change in the configuration
+         rc = m_pFovControl->updateConfigSettings(m_pParamBuf, m_pParamBufAux);
+ 
+diff --git a/QCamera2/HAL/QCameraParameters.h b/QCamera2/HAL/QCameraParameters.h
+index 0ca77d7c..7eb61055 100644
+--- a/QCamera2/HAL/QCameraParameters.h
++++ b/QCamera2/HAL/QCameraParameters.h
+@@ -734,7 +734,8 @@ class QCameraParameters: private CameraParameters
+     int32_t setISType();
+     void setSmallJpegSize(cam_dimension_t sensor_dim, cam_dimension_t snap_dim);
+     int32_t updateSnapshotPpMask(cam_stream_size_info_t &stream_config_info);
+-    int32_t getSensorOutputSize(cam_dimension_t max_dim, cam_dimension_t &sensor_dim);
++    int32_t getSensorOutputSize(cam_dimension_t max_dim, cam_dimension_t &sensor_dim,
++            uint32_t cam_type = MM_CAMERA_TYPE_MAIN);
+     cam_is_type_t getVideoISType();
+     cam_is_type_t getPreviewISType();
+     uint8_t getMobicatMask();
+diff --git a/QCamera2/util/QCameraDualCamSettings.h b/QCamera2/util/QCameraDualCamSettings.h
+index 236add57..db938e1e 100644
+--- a/QCamera2/util/QCameraDualCamSettings.h
++++ b/QCamera2/util/QCameraDualCamSettings.h
+@@ -61,6 +61,11 @@ typedef enum {
+ // wide FOV camera will not take place
+ #define FOVC_MAIN_CAM_FALLBACK_MECHANISM        (1)
+ 
++// Use external zoom translator. Setting this to 1 allows opening an external lib containing
++// implementation for custom zoom translation for user zoom to wide zoom and tele zoom. This
++// would override the default zoom translation logic present in the FOV-control.
++#define FOVC_USE_EXTERNAL_ZOOM_TRANSLATOR       (0)
++
+ // camera mode settings
+ 
+ // This setting will enable the snapshot postprocessing.
+diff --git a/QCamera2/util/QCameraExtZoomTranslator.cpp b/QCamera2/util/QCameraExtZoomTranslator.cpp
+new file mode 100644
+index 00000000..ecff28ff
+--- /dev/null
++++ b/QCamera2/util/QCameraExtZoomTranslator.cpp
+@@ -0,0 +1,204 @@
++/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
++*
++* Redistribution and use in source and binary forms, with or without
++* modification, are permitted provided that the following conditions are
++* met:
++*     * Redistributions of source code must retain the above copyright
++*       notice, this list of conditions and the following disclaimer.
++*     * Redistributions in binary form must reproduce the above
++*       copyright notice, this list of conditions and the following
++*       disclaimer in the documentation and/or other materials provided
++*       with the distribution.
++*     * Neither the name of The Linux Foundation nor the names of its
++*       contributors may be used to endorse or promote products derived
++*       from this software without specific prior written permission.
++*
++* THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
++* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
++* ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
++* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
++* BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
++* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
++* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++*
++*/
++
++#define LOG_TAG "QCameraExtZoomTranslator"
++
++#include <stdlib.h>
++#include <utils/Errors.h>
++#include "QCameraExtZoomTranslator.h"
++#include <dlfcn.h>
++
++extern "C" {
++#include "mm_camera_dbg.h"
++}
++
++namespace qcamera {
++
++/*===========================================================================
++ * FUNCTION   : QCameraExtZoomTranslator constructor
++ *
++ * DESCRIPTION: class constructor
++ *
++ * PARAMETERS : none
++ *
++ * RETURN     : void
++ *
++ *==========================================================================*/
++QCameraExtZoomTranslator::QCameraExtZoomTranslator()
++{
++    mLibHandle = NULL;
++    mInitSuccess = false;
++    memset(&mInitData, 0, sizeof(zoom_trans_init_data));
++}
++
++/*===========================================================================
++ * FUNCTION   : QCameraExtZoomTranslator destructor
++ *
++ * DESCRIPTION: class destructor
++ *
++ * PARAMETERS : none
++ *
++ * RETURN     : void
++ *
++ *==========================================================================*/
++QCameraExtZoomTranslator::~QCameraExtZoomTranslator()
++{
++    // dlclose the lib here and not in deinit
++}
++
++
++/*===========================================================================
++ * FUNCTION   : create
++ *
++ * DESCRIPTION: This is a static method to create QCameraExtZoomTranslator object.
++ *              It calls the private constructor of the class and only returns a
++ *              valid object if the library loading succeeds.
++ *
++ * PARAMETERS : None
++ *
++ * RETURN     : Valid object pointer if succeeds
++ *              NULL if fails
++ *
++ *==========================================================================*/
++QCameraExtZoomTranslator* QCameraExtZoomTranslator::create()
++{
++    QCameraExtZoomTranslator *pZoomTranslator = NULL;
++
++    // dlopen and dlsym here and if successful, create zoom translator object
++    // if (success) {
++    //     pZoomTranslator = new QCameraExtZoomTranslator();
++    // }
++
++    return pZoomTranslator;
++}
++
++
++/*===========================================================================
++ * FUNCTION   : init
++ *
++ * DESCRIPTION: This function passes the initialization data to the zoom
++ *              translation library.
++ *
++ *
++ * PARAMETERS :
++ *@initData   : Initialization data
++ *
++ * RETURN     :
++ * NO_ERROR           : Success
++ * INVALID_OPERATION  : Failure
++ *
++ *==========================================================================*/
++int32_t QCameraExtZoomTranslator::init(
++        __unused zoom_trans_init_data initData)
++{
++    int32_t rc = INVALID_OPERATION;
++
++    // Pass the initData to the zoom translation lib and if the operation succeeds,
++    // set rc to NO_ERROR. Set member variable mInitSuccess to true.
++
++    return rc;
++}
++
++
++/*===========================================================================
++ * FUNCTION   : getZoomValues
++ *
++ * DESCRIPTION: This function passes the user zoom to the zoom translation lib and
++ *              gets back wide and tele zoom values corresponding to that user zoom.
++ *
++ *
++ * PARAMETERS :
++ *@userZoom   : User zoom (zoom index into the zoom table)
++ *@wideZoom   : Zoom for wide camera (zoom index into the zoom table)
++ *@teleZoom   : Zoom for tele camera (zoom index into the zoom table)
++ *
++ * RETURN     :
++ * NO_ERROR           : Success
++ * INVALID_OPERATION  : Failure
++ *
++ *==========================================================================*/
++int32_t QCameraExtZoomTranslator::getZoomValues(
++        __unused uint32_t  userZoom,
++        __unused uint32_t *wideZoom,
++        __unused uint32_t *teleZoom)
++{
++    int32_t rc = INVALID_OPERATION;
++
++    // Pass the userzoom to the zoom translation lib to return wideZoom and teleZoom values.
++    // If the operation succeeds, set rc to NO_ERROR.
++
++    return rc;
++}
++
++
++/*===========================================================================
++ * FUNCTION   : deInit
++ *
++ * DESCRIPTION: This function de-initializes zoom translation lib.
++ *
++ *
++ * PARAMETERS : None
++ *
++ * RETURN     :
++ * NO_ERROR           : Success
++ * INVALID_OPERATION  : Failure
++ *
++ *==========================================================================*/
++int32_t QCameraExtZoomTranslator::deInit()
++{
++    int32_t rc = INVALID_OPERATION;
++
++    if (mInitSuccess) {
++        // Deinit the zoom translation lib and if successful, set rc to NO_ERROR.
++        // Do not dlclose here. dlclose in the destructor
++    }
++
++    return rc;
++}
++
++
++/*===========================================================================
++ * FUNCTION   : isInitialized
++ *
++ * DESCRIPTION: Check if the zoom translator is initialized successfully
++ *
++ *
++ * PARAMETERS : None
++ *
++ * RETURN     :
++ * true       : Initialized successfully
++ * false      : Not initialized
++ *
++ *==========================================================================*/
++bool QCameraExtZoomTranslator::isInitialized()
++{
++    return mInitSuccess;
++}
++
++}; // namespace qcamera
+diff --git a/QCamera2/util/QCameraExtZoomTranslator.h b/QCamera2/util/QCameraExtZoomTranslator.h
+new file mode 100644
+index 00000000..7ea04171
+--- /dev/null
++++ b/QCamera2/util/QCameraExtZoomTranslator.h
+@@ -0,0 +1,80 @@
++/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are
++ * met:
++ *     * Redistributions of source code must retain the above copyright
++ *       notice, this list of conditions and the following disclaimer.
++ *     * Redistributions in binary form must reproduce the above
++ *       copyright notice, this list of conditions and the following
++ *       disclaimer in the documentation and/or other materials provided
++ *       with the distribution.
++ *     * Neither the name of The Linux Foundation nor the names of its
++ *       contributors may be used to endorse or promote products derived
++ *       from this software without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
++ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
++ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
++ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
++ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ *
++ */
++
++#ifndef __QCAMERAEXTZOOMTRANSLATOR_H__
++#define __QCAMERAEXTZOOMTRANSLATOR_H__
++
++#include "cam_intf.h"
++
++using namespace android;
++
++namespace qcamera {
++
++typedef enum {
++    MODE_CAMERA,
++    MODE_CAMCORDER,
++    MODE_RTB
++} dual_cam_mode;
++
++typedef struct {
++    uint32_t width;
++    uint32_t height;
++} dimension_t;
++
++typedef struct {
++    dual_cam_mode mode;
++    void*         calibData;
++    uint32_t      calibDataSize;
++    dimension_t   previewDimension;
++    dimension_t   ispOutDimension;
++    dimension_t   sensorOutDimensionMain;
++    dimension_t   sensorOutDimensionAux;
++    uint32_t     *zoomRatioTable;
++    uint32_t      zoomRatioTableCount;
++} zoom_trans_init_data;
++
++class QCameraExtZoomTranslator {
++public:
++    ~QCameraExtZoomTranslator();
++    static QCameraExtZoomTranslator* create();
++    int32_t init(zoom_trans_init_data initData);
++    int32_t deInit();
++    int32_t getZoomValues(uint32_t userZoom, uint32_t *wideZoom, uint32_t *teleZoom);
++    bool isInitialized();
++private:
++    QCameraExtZoomTranslator();
++
++    void                   *mLibHandle;
++    bool                    mInitSuccess;
++    zoom_trans_init_data    mInitData;
++};
++
++}; // namespace qcamera
++
++#endif /* __QCAMERAEXTZOOMTRANSLATOR_H__ */
+diff --git a/QCamera2/util/QCameraFOVControl.cpp b/QCamera2/util/QCameraFOVControl.cpp
+index 61160b46..d8f709bf 100644
+--- a/QCamera2/util/QCameraFOVControl.cpp
++++ b/QCamera2/util/QCameraFOVControl.cpp
+@@ -1,4 +1,4 @@
+-/* Copyright (c) 2016, The Linux Foundation. All rights reserved.
++/* Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+@@ -54,6 +54,7 @@ namespace qcamera {
+  *==========================================================================*/
+ QCameraFOVControl::QCameraFOVControl()
+ {
++    mZoomTranslator = NULL;
+     memset(&mDualCamParams,    0, sizeof(dual_cam_params_t));
+     memset(&mFovControlConfig, 0, sizeof(fov_control_config_t));
+     memset(&mFovControlData,   0, sizeof(fov_control_data_t));
+@@ -73,6 +74,10 @@ QCameraFOVControl::QCameraFOVControl()
+  *==========================================================================*/
+ QCameraFOVControl::~QCameraFOVControl()
+ {
++    // De-initialize zoom translator lib
++    if (mZoomTranslator && mZoomTranslator->isInitialized()) {
++        mZoomTranslator->deInit();
++    }
+ }
+ 
+ 
+@@ -119,7 +124,6 @@ QCameraFOVControl* QCameraFOVControl::create(
+                 // Initialize the master info to main camera
+                 pFovControl->mFovControlResult.camMasterPreview  = CAM_TYPE_MAIN;
+                 pFovControl->mFovControlResult.camMaster3A       = CAM_TYPE_MAIN;
+-                success = true;
+ 
+                 // Check if LPM is enabled
+                 char prop[PROPERTY_VALUE_MAX];
+@@ -131,6 +135,16 @@ QCameraFOVControl* QCameraFOVControl::create(
+                 } else {
+                     pFovControl->mFovControlData.lpmEnabled = true;
+                 }
++
++                // Open the external zoom translation library if requested
++                if (FOVC_USE_EXTERNAL_ZOOM_TRANSLATOR) {
++                    pFovControl->mZoomTranslator =
++                            QCameraExtZoomTranslator::create();
++                    if (!pFovControl->mZoomTranslator) {
++                        LOGE("Unable to open zoom translation lib");
++                    }
++                }
++                success = true;
+             }
+ 
+             if (!success) {
+@@ -318,6 +332,14 @@ cam_capability_t QCameraFOVControl::consolidateCapabilities(
+             }
+         }
+         capsConsolidated.supported_picture_fmt_cnt = supportedPictureFmtCntFinal;
++
++        if (mZoomTranslator) {
++            // Copy the opaque calibration data pointer and size
++            mFovControlData.zoomTransInitData.calibData =
++                    capsConsolidated.related_cam_calibration.dc_otp_params;
++            mFovControlData.zoomTransInitData.calibDataSize =
++                    capsConsolidated.related_cam_calibration.dc_otp_size;
++        }
+     }
+     return capsConsolidated;
+ }
+@@ -427,8 +449,9 @@ int32_t QCameraFOVControl::updateConfigSettings(
+                 mFovControlData.camMainHeightMargin = camMainStreamInfo.margins[i].heightMargins;
+             }
+             if (camMainStreamInfo.type[i] == CAM_STREAM_TYPE_PREVIEW) {
+-                // Update the preview dimension
++                // Update the preview dimension and ISP output size
+                 mFovControlData.previewSize = camMainStreamInfo.stream_sizes[i];
++                mFovControlData.ispOutSize  = camMainStreamInfo.stream_sz_plus_margin[i];
+                 if (!mFovControlData.camcorderMode) {
+                     mFovControlData.camMainWidthMargin  =
+                             camMainStreamInfo.margins[i].widthMargins;
+@@ -459,6 +482,16 @@ int32_t QCameraFOVControl::updateConfigSettings(
+             }
+         }
+ 
++        // Get the sensor out dimensions
++        cam_dimension_t sensorDimMain = {0,0};
++        cam_dimension_t sensorDimAux  = {0,0};
++        if (paramsMainCam->is_valid[CAM_INTF_PARM_RAW_DIMENSION]) {
++            READ_PARAM_ENTRY(paramsMainCam, CAM_INTF_PARM_RAW_DIMENSION, sensorDimMain);
++        }
++        if (paramsAuxCam->is_valid[CAM_INTF_PARM_RAW_DIMENSION]) {
++            READ_PARAM_ENTRY(paramsAuxCam, CAM_INTF_PARM_RAW_DIMENSION, sensorDimAux);
++        }
++
+         // Reset the internal variables
+         resetVars();
+ 
+@@ -485,6 +518,48 @@ int32_t QCameraFOVControl::updateConfigSettings(
+             }
+             mFovControlResult.snapshotPostProcess = false;
+ 
++            // Deinit zoom translation lib if needed
++            if (mZoomTranslator && mZoomTranslator->isInitialized()) {
++                if (mZoomTranslator->deInit() != NO_ERROR) {
++                    ALOGW("deinit failed for zoom translation lib");
++                }
++            }
++
++            // Initialize the zoom translation lib
++            if (mZoomTranslator) {
++                // Set the initialization data
++                mFovControlData.zoomTransInitData.previewDimension.width =
++                        mFovControlData.previewSize.width;
++                mFovControlData.zoomTransInitData.previewDimension.height =
++                        mFovControlData.previewSize.height;
++                mFovControlData.zoomTransInitData.ispOutDimension.width =
++                        mFovControlData.ispOutSize.width;
++                mFovControlData.zoomTransInitData.ispOutDimension.height =
++                        mFovControlData.ispOutSize.height;
++                mFovControlData.zoomTransInitData.sensorOutDimensionMain.width =
++                        sensorDimMain.width;
++                mFovControlData.zoomTransInitData.sensorOutDimensionMain.height =
++                        sensorDimMain.height;
++                mFovControlData.zoomTransInitData.sensorOutDimensionAux.width =
++                        sensorDimAux.width;
++                mFovControlData.zoomTransInitData.sensorOutDimensionAux.height =
++                        sensorDimAux.height;
++                mFovControlData.zoomTransInitData.zoomRatioTable =
++                        mFovControlData.zoomRatioTable;
++                mFovControlData.zoomTransInitData.zoomRatioTableCount =
++                        mFovControlData.zoomRatioTableCount;
++                mFovControlData.zoomTransInitData.mode = mFovControlData.camcorderMode ?
++                        MODE_CAMCORDER : MODE_CAMERA;
++
++                if(mZoomTranslator->init(mFovControlData.zoomTransInitData) != NO_ERROR) {
++                    LOGE("init failed for zoom translation lib");
++
++                    // deinitialize the zoom translator and set to NULL
++                    mZoomTranslator->deInit();
++                    mZoomTranslator = NULL;
++                }
++            }
++
+             // FOV-control config is complete for the current use case
+             mFovControlData.configCompleted = true;
+             rc = NO_ERROR;
+@@ -527,17 +602,14 @@ int32_t QCameraFOVControl::translateInputParams(
+             convertUserZoomToWideAndTele(userZoom);
+ 
+             // Update zoom values in the param buffers
++            uint32_t zoomMain = isMainCamFovWider() ?
++                    mFovControlData.zoomWide : mFovControlData.zoomTele;
++            ADD_SET_PARAM_ENTRY_TO_BATCH(paramsMainCam, CAM_INTF_PARM_ZOOM, zoomMain);
++
+             uint32_t zoomAux = isMainCamFovWider() ?
+                     mFovControlData.zoomTele : mFovControlData.zoomWide;
+             ADD_SET_PARAM_ENTRY_TO_BATCH(paramsAuxCam, CAM_INTF_PARM_ZOOM, zoomAux);
+ 
+-            // Write the updated zoom value for the main camera if the main camera FOV
+-            // is not the wider of the two.
+-            if (!isMainCamFovWider()) {
+-                ADD_SET_PARAM_ENTRY_TO_BATCH(paramsMainCam, CAM_INTF_PARM_ZOOM,
+-                        mFovControlData.zoomTele);
+-            }
+-
+             // Write the user zoom in main and aux param buffers
+             // The user zoom will always correspond to the wider camera
+             paramsMainCam->is_valid[CAM_INTF_PARM_DC_USERZOOM] = 1;
+@@ -1723,8 +1795,25 @@ void QCameraFOVControl::convertUserZoomToWideAndTele(
+ {
+     Mutex::Autolock lock(mMutex);
+ 
+-    mFovControlData.zoomWide = zoom;
+-    mFovControlData.zoomTele = readjustZoomForTele(mFovControlData.zoomWide);
++    // If the zoom translation library is present and initialized,
++    // use it to get wide and tele zoom values
++    if (mZoomTranslator && mZoomTranslator->isInitialized()) {
++        uint32_t zoomWide = 0;
++        uint32_t zoomTele = 0;
++        if (mZoomTranslator->getZoomValues(zoom, &zoomWide, &zoomTele) != NO_ERROR) {
++            LOGE("getZoomValues failed from zoom translation lib");
++            // Use zoom translation logic from FOV-control
++            mFovControlData.zoomWide = zoom;
++            mFovControlData.zoomTele = readjustZoomForTele(mFovControlData.zoomWide);
++        } else {
++            // Use the zoom values provided by zoom translation lib
++            mFovControlData.zoomWide = zoomWide;
++            mFovControlData.zoomTele = zoomTele;
++        }
++    } else {
++        mFovControlData.zoomWide = zoom;
++        mFovControlData.zoomTele = readjustZoomForTele(mFovControlData.zoomWide);
++    }
+ }
+ 
+ 
+diff --git a/QCamera2/util/QCameraFOVControl.h b/QCamera2/util/QCameraFOVControl.h
+index 5b13ff7e..e17cb9b1 100644
+--- a/QCamera2/util/QCameraFOVControl.h
++++ b/QCamera2/util/QCameraFOVControl.h
+@@ -1,4 +1,4 @@
+-/* Copyright (c) 2016, The Linux Foundation. All rights reserved.
++/* Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without
+  * modification, are permitted provided that the following conditions are
+@@ -32,6 +32,7 @@
+ 
+ #include <utils/Mutex.h>
+ #include "cam_intf.h"
++#include "QCameraExtZoomTranslator.h"
+ 
+ using namespace android;
+ 
+@@ -130,11 +131,13 @@ typedef struct {
+     uint32_t                     zoomRatioTableCount;
+     uint32_t                     zoomStableCount;
+     dual_cam_zoom_dir            zoomDirection;
++    zoom_trans_init_data         zoomTransInitData;
+     cam_sync_type_t              camWide;
+     cam_sync_type_t              camTele;
+     dual_cam_state               camState;
+     dual_cam_3A_status_t         status3A;
+     cam_dimension_t              previewSize;
++    cam_dimension_t              ispOutSize;
+     spatial_align_result_t       spatialAlignResult;
+     uint32_t                     availableSpatialAlignSolns;
+     float                        camMainWidthMargin;
+@@ -241,6 +244,7 @@ class QCameraFOVControl {
+     fov_control_data_t              mFovControlData;
+     fov_control_result_t            mFovControlResult;
+     dual_cam_params_t               mDualCamParams;
++    QCameraExtZoomTranslator       *mZoomTranslator;
+ };
+ 
+ }; // namespace qcamera
