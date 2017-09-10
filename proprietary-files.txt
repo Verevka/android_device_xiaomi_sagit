@@ -218,7 +218,7 @@ vendor/lib64/liboptizoom.so
 vendor/lib64/libchromaflash.so
 vendor/lib64/libblurbuster.so
 
-+#Camera app modules
+#Camera app modules
 vendor/lib64/libjni_optizoom.so
 vendor/lib64/libjni_chromaflash.so
 vendor/lib64/libjni_makeupV2.so
