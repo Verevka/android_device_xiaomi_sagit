@@ -31,6 +31,10 @@ PRODUCT_MODEL := MI 6
 PRODUCT_MANUFACTURER := Xiaomi
 
 PRODUCT_BUILD_PROP_OVERRIDES += \
+<<<<<<< HEAD:lineage.mk
     BUILD_FINGERPRINT="Xiaomi/sagit/sagit:7.1.1/NMF26X/7.8.24:user/release-keys"
+=======
+    BUILD_FINGERPRINT="Xiaomi/sagit/sagit:7.1.1/NMF26X/7.9.7:user/release-keys"
+>>>>>>> e9ed246bcf3ee6625badde2a7f0ca3afb25ba9d2:aicp.mk
 
 PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
