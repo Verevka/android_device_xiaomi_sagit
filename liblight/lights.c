@@ -70,7 +70,7 @@ static int hw_buttons;
 
 #define RAMP_SIZE 8
 static int BRIGHTNESS_RAMP[RAMP_SIZE] = { 0, 12, 25, 37, 50, 72, 85, 100 };
-#define RAMP_STEP_DURATION 50
+#define RAMP_STEP_DURATION 500
 
 #define DEFAULT_MAX_BRIGHTNESS 255
 int max_brightness;
@@ -244,7 +244,6 @@ static int set_speaker_light_locked(struct light_device_t* dev,
 {
     int white, blink;
     int onMS, offMS, stepDuration, pauseHi;
-    unsigned int colorRGB;
     char *duty;
 
     if (!dev)
@@ -262,12 +261,10 @@ static int set_speaker_light_locked(struct light_device_t* dev,
         break;
     }
 
-    colorRGB = state->color;
-
     ALOGV("%s: mode %d, colorRGB=%08X, onMS=%d, offMS=%d\n",
-            __func__, state->flashMode, colorRGB, onMS, offMS);
+            __func__, state->flashMode, state->color, onMS, offMS);
 
-    white = (colorRGB >> 16) & 0xFF;
+    white = rgb_to_brightness(state);
     blink = onMS > 0 && offMS > 0;
 
     write_int(WHITE_BLINK_FILE, 0);
