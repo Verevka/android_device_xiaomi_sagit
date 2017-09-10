@@ -30,7 +30,6 @@ audio.offload.gapless.enabled=true
 audio.safx.pbe.enabled=true
 audio.parser.ip.buffer.size=0
 flac.sw.decoder.24bit.support=true
-persist.bt.a2dp_offload_cap=sbc-aptx-aptxhd
 use.qti.sw.alac.decoder=true
 use.qti.sw.ape.decoder=true
 qcom.hw.aac.encoder=true
@@ -218,9 +217,6 @@ persist.dbg.wfc_avail_ovr=1
 
 # Wi-Fi
 wifi.interface=wlan0
-
-# SdcardFs
-ro.sys.sdcardfs=true
 
 # Hardware Info
 PRODUCT_PROPERTY_OVERRIDES += \
