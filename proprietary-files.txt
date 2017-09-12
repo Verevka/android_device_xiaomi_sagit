@@ -698,6 +698,10 @@ vendor/lib64/libsecureui_svcsock.so
 vendor/lib64/libspl.so
 vendor/lib64/libssd.so
 vendor/lib/libQSEEComAPI.so
+vendor/lib/mediadrm/libdrmclearkeyplugin.so
+vendor/lib/mediadrm/libwvdrmengine.so
+framework/com.android.mediadrm.signer.jar
+
 
 # Fingerprint
 lib/hw/fingerprint.goodix.so
