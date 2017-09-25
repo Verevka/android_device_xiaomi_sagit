@@ -235,6 +235,10 @@ PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_telephony.xml:system/etc/media_codecs_google_telephony.xml \
     frameworks/av/media/libstagefright/data/media_codecs_google_video.xml:system/etc/media_codecs_google_video.xml
 
+# MusicFX
+PRODUCT_PACKAGES += \
+    MusicFX
+
 # NFC
 PRODUCT_PACKAGES += \
     com.android.nfc_extras \
@@ -250,14 +254,14 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/nfc/libnfc-nxp.conf:system/etc/libnfc-nxp.conf
 
 # Open gapps
-GAPPS_VARIANT := pico
-GAPPS_FORCE_WEBVIEW_OVERRIDES := true
-GAPPS_PRODUCT_PACKAGES += Photos
-GAPPS_PRODUCT_PACKAGES += Wallet
-GAPPS_PRODUCT_PACKAGES += YouTube
+#GAPPS_VARIANT := pico
+#GAPPS_FORCE_WEBVIEW_OVERRIDES := true
+#GAPPS_PRODUCT_PACKAGES += Photos
+#GAPPS_PRODUCT_PACKAGES += Wallet
+#GAPPS_PRODUCT_PACKAGES += YouTube
 #GAPPS_FORCE_MATCHING_DPI := true
 #GAPPS_FORCE_BROWSER_OVERRIDES := true
-$(call inherit-product, vendor/opengapps/build/opengapps-packages.mk)
+#$(call inherit-product, vendor/opengapps/build/opengapps-packages.mk)
 
 # OMX
 PRODUCT_PACKAGES += \
@@ -274,7 +278,7 @@ PRODUCT_PACKAGES += \
 
 # Power
 PRODUCT_PACKAGES += \
-    power.msm8998
+    power.qcom
 
 # QMI
 PRODUCT_PACKAGES += \

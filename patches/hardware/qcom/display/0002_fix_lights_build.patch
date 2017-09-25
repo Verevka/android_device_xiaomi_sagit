@@ -1,0 +1,32 @@
+commit 1df87709e37b293bc496fdf07ac5c7d07f126786
+Author: Verevka <verevka86@gmail.com>
+Date:   Sun Sep 24 12:02:26 2017 +0300
+
+    fix_lights_build
+    
+    Change-Id: Idb4c19a376e48eeb31bd731a10181a2b63043b5a
+
+diff --git a/Android.mk b/Android.mk
+index 226e8a0..a87fbe8 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -2,7 +2,7 @@ sdm-libs := sdm/libs
+ display-hals := include libqservice libqdutils $(sdm-libs)/utils $(sdm-libs)/core
+ 
+ ifneq ($(TARGET_IS_HEADLESS), true)
+-    display-hals += libcopybit liblight libmemtrack hdmi_cec \
++    display-hals += libcopybit libmemtrack hdmi_cec \
+                     $(sdm-libs)/hwc $(sdm-libs)/hwc2 gpu_tonemapper libdrmutils
+ endif
+ 
+@@ -12,6 +12,10 @@ else
+     display-hals += libgralloc1
+ endif
+ 
++ifneq ($(TARGET_PROVIDES_LIBLIGHT),true)
++display-hals += liblight
++endif
++
+ ifeq ($(call is-vendor-board-platform,QCOM),true)
+     include $(call all-named-subdir-makefiles,$(display-hals))
+ else

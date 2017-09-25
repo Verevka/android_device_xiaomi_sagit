@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2013 The CyanogenMod Project
+<!-- Copyright (C) 2007 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -13,24 +13,10 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-
-<resources>
-    <!-- When true enable color temperature setting. -->
-    <bool name="config_enableColorTemperature">true</bool>
-
-    <bool name="config_show_volumeRockerWake">true</bool>
-
-    <!-- Defines the location of the fingerprint sensor on the device
-         0 = back
-         1 = front
-         2 = left side
-         3 = right side
-    -->
-    <integer name="config_fingerprintSensorLocation">1</integer>
-
-    <bool name="config_voice_over_lte_enabled">true</bool>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
     <!-- does the device have multi color led support or only
          a fixed set of led colors -->
     <bool name="config_has_multi_color_led">false</bool>
+
 </resources>

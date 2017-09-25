@@ -1,0 +1,126 @@
+commit 22006283612f54e34f29e0e6ac987e72ae223b06
+Author: Verevka <verevka86@gmail.com>
+Date:   Mon Sep 25 23:06:57 2017 +0300
+
+    add_products_sagit
+    
+    Change-Id: Ia13b32a93f7ea2a31f601d4a25a3855f645dc8e9
+
+diff --git a/products/AndroidProducts.mk b/products/AndroidProducts.mk
+index 1c6c79d..b447625 100644
+--- a/products/AndroidProducts.mk
++++ b/products/AndroidProducts.mk
+@@ -21,6 +21,7 @@
+     $(LOCAL_DIR)/oneplus3/pa_oneplus3.mk \
+     $(LOCAL_DIR)/onyx/pa_onyx.mk \
+     $(LOCAL_DIR)/robin/pa_robin.mk \
++    $(LOCAL_DIR)/sagit/pa_sagit.mk \
+     $(LOCAL_DIR)/zl1/pa_zl1.mk
+ 
+ # Samsung Exynos family
+@@ -46,4 +47,4 @@
+    PRODUCT_MAKEFILES += \
+     $(LOCAL_DIR)/dora/pa_dora.mk \
+     $(LOCAL_DIR)/kagura/pa_kagura.mk \
+-    $(LOCAL_DIR)/keyaki/pa_keyaki.mk
+\ No newline at end of file
++    $(LOCAL_DIR)/keyaki/pa_keyaki.mk
+diff --git a/products/sagit/pa.dependencies b/products/sagit/pa.dependencies
+new file mode 100644
+index 0000000..3580632
+--- /dev/null
++++ b/products/sagit/pa.dependencies
+@@ -0,0 +1,32 @@
++[
++    {
++        "remote":       "github",
++        "repository":   "Verevka/android_kernel_xiaomi_msm8998",
++        "target_path":  "kernel/xiaomi/msm8998",
++        "revision":     "kernel.lnx.4.4.r13-rel"
++    },
++    {
++        "remote":       "github",
++        "repository":   "omnirom/android_external_ant-wireless_antradio-library",
++        "target_path":  "external/ant-wireless/antradio-library",
++        "revision":     "android-7.1"
++    },
++    {
++        "remote":       "aospa",
++        "repository":   "AOSPA/android_hardware_qcom_audio",
++        "target_path":  "hardware/qcom/audio",
++        "revision":     "nougat-mr2-8998"
++    },
++    {
++        "remote":       "aospa",
++        "repository":   "AOSPA/android_hardware_qcom_display",
++        "target_path":  "hardware/qcom/display",
++        "revision":     "nougat-mr2-8998"
++    },
++    {
++        "remote":       "aospa",
++        "repository":   "AOSPA/android_hardware_qcom_media",
++        "target_path":  "hardware/qcom/media",
++        "revision":     "nougat-mr2-8998"
++    }
++]
+diff --git a/products/sagit/pa_sagit.mk b/products/sagit/pa_sagit.mk
+new file mode 100644
+index 0000000..348908b
+--- /dev/null
++++ b/products/sagit/pa_sagit.mk
+@@ -0,0 +1,55 @@
++# Copyright (C) 2017 Paranoid Android
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++# Check for the target product.
++ifeq (pa_sagit,$(TARGET_PRODUCT))
++
++# Inherit from those products, most specific first.
++$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base_telephony.mk)
++
++# Set bootanimation to 1080p display.
++TARGET_BOOT_ANIMATION_RES := 1080
++
++# Most advanced platform features, first.
++TARGET_WANTS_EXTENDED_DPM_PLATFORM := true
++
++# Inherit from our common CAF device tree.
++include device/qcom/common/common.mk
++
++# Inherit the device configuration itself.
++$(call inherit-product, device/xiaomi/sagit/device.mk)
++
++# Override device build properties.
++PRODUCT_NAME := pa_sagit
++PRODUCT_DEVICE := sagit
++PRODUCT_BRAND := Xiaomi
++PRODUCT_MODEL := MI 6
++PRODUCT_MANUFACTURER := Xiaomi
++
++# Google client ID.
++PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
++
++PRODUCT_BUILD_PROP_OVERRIDES += \
++    TARGET_DEVICE="sagit" \
++    PRODUCT_NAME="sagit" \
++    BUILD_FINGERPRINT="Xiaomi/sagit/sagit:7.1.1/NMF26X/7.9.22:user/release-keys" \
++    PRIVATE_BUILD_DESC="sagit-user 7.1.1 NMF26X 7.9.22 release-keys"
++
++TARGET_VENDOR := Xiaomi
++
++# Paranoid Android platform
++include vendor/pa/main.mk
++
++endif

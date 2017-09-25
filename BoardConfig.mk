@@ -171,13 +171,13 @@ BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
 HEALTHD_USE_FASTCHG_STATUS := true
 
 # CM Hardware
-TARGET_TAP_TO_WAKE_NODE :=  "/sys/devices/soc/c179000.i2c/i2c-5/5-0020/input/input1/wake_gesture"
+TARGET_TAP_TO_WAKE_NODE := "/sys/devices/soc/c179000.i2c/i2c-5/5-0020/input/input1/wake_gesture"
 
 # CNE and DPM
 BOARD_USES_QCNE := true
 
 # Dex
-#WITH_DEXPREOPT_BOOT_IMG_ONLY ?= false
+#ITH_DEXPREOPT_BOOT_IMG_ONLY ?= false
 
 # Display
 MAX_VIRTUAL_DISPLAY_DIMENSION := 4096
@@ -222,16 +222,12 @@ BOARD_SYSTEMIMAGE_PARTITION_SIZE := 5368709120
 BOARD_USERDATAIMAGE_PARTITION_SIZE := 120426835968
 BOARD_FLASH_BLOCK_SIZE := 262144 # (BOARD_KERNEL_PAGESIZE * 64)
 
-# Power
-TARGET_POWERHAL_VARIANT := qcom
-
 # QCOM
-BOARD_USES_QCOM_HARDWARE := true
 BOARD_USES_QC_TIME_SERVICES := true
 TARGET_USE_SDCLANG := true
 
 # Power
-TARGET_POWERHAL_VARIANT := none
+TARGET_POWERHAL_VARIANT := qcom
 
 # Recovery
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/rootdir/root/fstab.qcom
@@ -247,7 +243,7 @@ PROTOBUF_SUPPORTED := true
 TARGET_RIL_VARIANT := caf
 
 # SELinux
-include device/qcom/sepolicy/sepolicy.mk
+include device/qcom/sepolicy/Android.mk
 
 BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy
 

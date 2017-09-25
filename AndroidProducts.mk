@@ -14,5 +14,4 @@
 # limitations under the License.
 
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/aosp_sagit.mk \
     $(LOCAL_DIR)/full_sagit.mk
