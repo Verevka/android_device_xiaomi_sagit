@@ -82,6 +82,8 @@ vendor/lib/libhwdaphal.so
 bin/btnvtool
 bin/hci_qcomm_init
 bin/wcnss_filter
+lib/libbthost_if.so
+lib64/libbthost_if.so
 vendor/lib64/libbtnv.so
 vendor/lib/libbtnv.so
 
