@@ -76,7 +76,7 @@ camera.hal1.packagelist=com.skype.raider,com.google.android.talk,com.whatsapp
 persist.camera.mobicat=2
 persist.camera.stats.debugexif=3080192
 persist.ts.rtmakeup=false
-#persist.camera.HAL3.enabled=1
+persist.camera.HAL3.enabled=1
 
 #low power mode for camera
 camera.lowpower.record.enable=1
