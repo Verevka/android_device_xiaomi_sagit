@@ -13,4 +13,6 @@
   <project path="vendor/nxp-nfc/opensource/libnfc-nci" name="LineageOS/android_vendor_nxp-nfc_opensource_libnfc-nci" />
   <project path="vendor/nxp-nfc/opensource/Nfc" name="LineageOS/android_vendor_nxp-nfc_opensource_Nfc" />
 
+  <project path="packages/apps/OTAUpdates" name="MatthewBooth/OTAUpdates" revision="aosp" />
+
 </manifest>
