@@ -27,7 +27,4 @@
 
     <!-- Whether device has dash charging support -->
     <bool name="config_hasDashCharger">true</bool>
-
-    <!-- Whether home button can wake device -->
-    <bool name="config_homeCanWake">true</bool>
 </resources>

@@ -19,24 +19,26 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 # Inherit from Xiaomi MI6 device
 $(call inherit-product, device/xiaomi/sagit/device.mk)
 
-# Inherit some common AOSP stuff.
-$(call inherit-product, vendor/aosp/common.mk)
+# Inherit some common AICP stuff.
+$(call inherit-product, vendor/aicp/configs/common.mk)
 
+# Inherit telephony stuff
+$(call inherit-product, vendor/aicp/configs/telephony.mk)
 
-PRODUCT_NAME := aosp_sagit
+PRODUCT_NAME := aicp_sagit
 PRODUCT_DEVICE := sagit
 PRODUCT_BRAND := Xiaomi
 PRODUCT_MODEL := MI 6
 PRODUCT_MANUFACTURER := Xiaomi
 
 PRODUCT_BUILD_PROP_OVERRIDES += \
-    BUILD_FINGERPRINT="Xiaomi/sagit/sagit:7.1.1/NMF26X/7.9.22:user/release-keys"
-
-# Boot animation
-TARGET_BOOT_ANIMATION_RES := 1080
-
-# Use Magisk
-DEFAULT_ROOT_METHOD := magisk
+    BUILD_FINGERPRINT="Xiaomi/sagit/sagit:7.1.1/NMF26X/7.9.7:user/release-keys"
 
 PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
 
+# AICP Device Maintainers
+PRODUCT_BUILD_PROP_OVERRIDES += \
+    DEVICE_MAINTAINERS="Verevka-dev"
+
+# Boot animation
+include vendor/aicp/configs/bootanimation.mk

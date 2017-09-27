@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
-
   <project path="kernel/xiaomi/msm8998" name="Verevka/android_kernel_xiaomi_msm8998" remote="github" revision="kernel.lnx.4.4.r13-rel" />
 
-  <project path="vendor/nxp-nfc/opensource/frameworks" name="lineageos/android_vendor_nxp-nfc_opensource_frameworks" remote="github" revision="cm-14.1" />
-  <project path="vendor/nxp-nfc/opensource/libnfc-nci" name="lineageos/android_vendor_nxp-nfc_opensource_libnfc-nci" remote="github" revision="cm-14.1" />
-  <project path="vendor/nxp-nfc/opensource/Nfc" name="lineageos/android_vendor_nxp-nfc_opensource_Nfc" remote="github" revision="cm-14.1" />
+<!--Repositories to replace-->
+  <remove-project name="AICP/packages_apps_CMFileManager" />
+
+  <project name="LineageOS/android_external_busybox" path="external/busybox" revision="cm-14.1" />
+  <project path="device/qcom/common" name="LineageOS/android_device_qcom_common" remote="github" revision="cm-14.1"/>
+  <project path="packages/resources/devicesettings" name="LineageOS/android_packages_resources_devicesettings" revision="cm-14.1" />
+  <project path="packages/apps/WeatherProviders" name="sultanxda/android_packages_apps_WeatherProviders" revision="cm-14.1" />
+  <project path="vendor/nxp-nfc/opensource/frameworks" name="LineageOS/android_vendor_nxp-nfc_opensource_frameworks" />
+  <project path="vendor/nxp-nfc/opensource/libnfc-nci" name="LineageOS/android_vendor_nxp-nfc_opensource_libnfc-nci" />
+  <project path="vendor/nxp-nfc/opensource/Nfc" name="LineageOS/android_vendor_nxp-nfc_opensource_Nfc" />
 
 </manifest>
