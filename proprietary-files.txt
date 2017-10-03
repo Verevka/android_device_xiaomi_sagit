@@ -98,13 +98,19 @@ etc/firmware/rampatch_tlv_3.2.tlv
 # Camera
 bin/mm-qcamera-daemon
 lib/hw/camera.msm8998.so
+lib/libCameraEffectJNI.so
 lib/libmmcamera_interface.so
 lib/libmmjpeg_interface.so
 lib/libmm-qcamera.so
 lib/libMiCameraHal.so
 lib/libmorpho_memory_allocator.so
 lib/libmorpho_panorama.so
+lib/libmorpho_groupshot.so
 lib/libqomx_core.so
+lib64/libCameraEffectJNI.so
+lib64/libmorpho_memory_allocator.so
+lib64/libmorpho_panorama.so
+lib64/libmorpho_groupshot.so
 vendor/lib/libarcsoft_beautyshot_image_algorithm.so
 vendor/lib/libarcsoft_beauty_shot.so
 vendor/lib/libarcsoft_beautyshot.so
