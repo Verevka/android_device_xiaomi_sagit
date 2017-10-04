@@ -40,9 +40,9 @@ LOCAL_CFLAGS += \
      -D_ANDROID_
 
 LOCAL_C_INCLUDES:= \
+    $(LOCAL_PATH) \
     $(TARGET_OUT_HEADERS)/gps.utils \
     $(TARGET_OUT_HEADERS)/libloc_core \
-    hardware/qcom/gps/loc_api/libloc_api_50001 \
     $(TARGET_OUT_HEADERS)/libflp \
     $(TARGET_OUT_HEADERS)/libloc_pla
 
