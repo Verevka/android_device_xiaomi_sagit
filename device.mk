@@ -155,6 +155,12 @@ PRODUCT_PACKAGES += \
 # GPS
 PRODUCT_PACKAGES += \
     gps.msm8998 \
+    gps.conf \
+    libgps.utils \
+    libloc_core \
+    libloc_eng \
+    libloc_pla \
+    libloc_stub \
     libcurl \
     libgnsspps \
     libvehiclenetwork-native
@@ -176,6 +182,10 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/keylayout/synaptics_dsx.kl:system/usr/keylayout/synaptics_dsx.kl \
     $(LOCAL_PATH)/keylayout/uinput-fpc.kl:system/usr/keylayout/uinput-fpc.kl \
     $(LOCAL_PATH)/keylayout/uinput-goodix.kl:system/usr/keylayout/uinput-goodix.kl
+
+# Vehicle network (for slim_daemon)
+PRODUCT_PACKAGES += \
+    libvehiclenetwork-native
 
 # IPv6
 PRODUCT_PACKAGES += \
