@@ -1,0 +1,5 @@
+This is patch directory
+
+cd WORKING_DIR
+sh device/xiaomi/sagit/patches/install.sh
+sh device/xiaomi/sagit/patches/uninstall.sh

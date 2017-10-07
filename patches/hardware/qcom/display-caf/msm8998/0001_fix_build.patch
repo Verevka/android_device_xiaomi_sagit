@@ -1,0 +1,23 @@
+commit fa4951bae8d5cbf9da9c37108bb9dd3cdbcb1ced
+Author: Verevka <verevka86@gmail.com>
+Date:   Fri Sep 8 10:48:29 2017 +0300
+
+    fix_build
+
+diff --git a/gpu_tonemapper/EGLImageWrapper.cpp b/gpu_tonemapper/EGLImageWrapper.cpp
+index dfc16d8..a64ceab 100644
+--- a/gpu_tonemapper/EGLImageWrapper.cpp
++++ b/gpu_tonemapper/EGLImageWrapper.cpp
+@@ -122,9 +122,9 @@ static EGLImageBuffer* L_wrap(const private_handle_t *src)
+ 
+     android::sp<android::GraphicBuffer> graphicBuffer =
+         new android::GraphicBuffer(src->unaligned_width, src->unaligned_height, src->format,
+-#ifndef __NOUGAT__
+-                                   1, // Layer count
+-#endif
++//#ifndef __NOUGAT__
++//                                   1, // Layer count
++//#endif
+                                    flags, src->width /*src->stride*/,
+                                    native_handle, false);
+ 

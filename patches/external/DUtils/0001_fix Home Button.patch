@@ -1,0 +1,21 @@
+commit f0d54d35ab4ee6d6c537ad8c133a8ebc4d8c01bf
+Author: Verevka <verevka86@gmail.com>
+Date:   Wed Sep 20 17:17:11 2017 +0300
+
+    fix Home Button
+    
+    Change-Id: I1bf7aaea9d4f3ae6710e051a8eff4dad2ead0b85
+
+diff --git a/src/com/android/internal/utils/du/ActionConstants.java b/src/com/android/internal/utils/du/ActionConstants.java
+index d41f8c4..e561719 100644
+--- a/src/com/android/internal/utils/du/ActionConstants.java
++++ b/src/com/android/internal/utils/du/ActionConstants.java
+@@ -215,7 +215,7 @@ public class ActionConstants {
+               + dl(HOME_BUTTON_TAG)
+               + dl(SystemAction.Home.mAction)        + dl(SystemAction.Home.mLabelRes)         + dl(EMPTY)
+               + dl(SystemAction.Menu.mAction)        + dl(SystemAction.Menu.mLabelRes)         + dl(EMPTY)
+-              + dl(SystemAction.Overview.mAction)    + dl(SystemAction.Overview.mLabelRes)         + dl(EMPTY)
++              + dl(SystemAction.NoAction.mAction)    + dl(SystemAction.NoAction.mLabelRes)         + dl(EMPTY)
+ 
+               + dl(OVERVIEW_BUTTON_TAG)
+               + dl(SystemAction.Overview.mAction)    + dl(SystemAction.Overview.mLabelRes)     + dl(EMPTY)

@@ -1,0 +1,23 @@
+commit 762e36caeaf709628d9e8ac084869ec0b35117d6
+Author: Verevka <verevka86@gmail.com>
+Date:   Sat Aug 19 19:14:16 2017 +0300
+
+    fix_volume_key
+    
+    Change-Id: I43360f465e496250552c5cb57a779764cf7f5552
+
+diff --git a/data/keyboards/Generic.kl b/data/keyboards/Generic.kl
+index 2a10bdd..bc7bdc4 100644
+--- a/data/keyboards/Generic.kl
++++ b/data/keyboards/Generic.kl
+@@ -248,8 +248,8 @@ key 225   BRIGHTNESS_UP
+ key 226   HEADSETHOOK
+ 
+ key 256   BUTTON_1
+-key 257   BUTTON_2
+-key 258   BUTTON_3
++key 257   VOLUME_UP
++key 258   VOLUME_DOWN
+ key 259   BUTTON_4
+ key 260   BUTTON_5
+ key 261   BUTTON_6

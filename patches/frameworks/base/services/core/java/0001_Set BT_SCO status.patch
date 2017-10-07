@@ -1,0 +1,28 @@
+commit b9b0d65ec140067707ce5c41a79b1ba1cc1ce2d3
+Author: Verevka <verevka86@gmail.com>
+Date:   Thu Sep 14 15:50:41 2017 +0300
+
+    Set BT_SCO status
+    
+    Change-Id: I174be3d6465b744a65531cc9f7b1f0a55f75868d
+
+diff --git a/services/core/java/com/android/server/audio/AudioService.java b/services/core/java/com/android/server/audio/AudioService.java
+index ff3da5b..85d293f
+--- a/services/core/java/com/android/server/audio/AudioService.java
++++ b/services/core/java/com/android/server/audio/AudioService.java
+@@ -2945,6 +2945,7 @@ public class AudioService extends IAudioService.Stub {
+                 return;
+             }
+             mForcedUseForComm = AudioSystem.FORCE_BT_SCO;
++            AudioSystem.setParameters("BT_SCO=on");
+             synchronized(mScoClients) {
+                 if ((mBluetoothHeadset != null) &&
+                     (mBluetoothHeadset.getAudioState(mBluetoothHeadsetDevice)
+@@ -2953,6 +2954,7 @@ public class AudioService extends IAudioService.Stub {
+                 }
+             }
+         } else if (mForcedUseForComm == AudioSystem.FORCE_BT_SCO) {
++            AudioSystem.setParameters("BT_SCO=off");
+             mForcedUseForComm = AudioSystem.FORCE_NONE;
+         }
+ 
